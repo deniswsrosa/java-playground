@@ -1,4 +1,4 @@
-package example;
+package com.couchbase.playground;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.CognitoIdentity;

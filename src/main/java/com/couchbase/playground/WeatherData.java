@@ -1,4 +1,4 @@
-package example;
+package com.couchbase.playground;
 
 public class WeatherData {
 

@@ -1,4 +1,4 @@
-package example;
+package com.couchbase.playground;
 
 import java.io.Serializable;
 import java.util.List;
@@ -7,15 +7,15 @@ public class CodeResult implements Serializable {
 
     private boolean isSuccessful = true;
     private String output;
-    private String exceptionStackTrace;
-    private List<String> compilationErrors;
+    private String exception;
+    private String compilationError;
 
-    public List<String> getCompilationErrors() {
-        return compilationErrors;
+    public String getCompilationError() {
+        return compilationError;
     }
 
-    public void setCompilationErrors(List<String> compilationErrors) {
-        this.compilationErrors = compilationErrors;
+    public void setCompilationError(String compilationError) {
+        this.compilationError = compilationError;
     }
 
     public boolean isSuccessful() {
@@ -34,12 +34,12 @@ public class CodeResult implements Serializable {
         this.output = output;
     }
 
-    public String getExceptionStackTrace() {
-        return exceptionStackTrace;
+    public String getException() {
+        return exception;
     }
 
-    public void setExceptionStackTrace(String exceptionStackTrace) {
-        this.exceptionStackTrace = exceptionStackTrace;
+    public void setException(String exception) {
+        this.exception = exception;
     }
 
     @Override
@@ -47,8 +47,8 @@ public class CodeResult implements Serializable {
         return "CodeResult{" +
                 "isSuccessful=" + isSuccessful +
                 ", output='" + output + '\'' +
-                ", exceptionStackTrace='" + exceptionStackTrace + '\'' +
-                ", compilationErrors=" + compilationErrors +
+                ", exceptionStackTrace='" + exception + '\'' +
+                ", compilationError=" + compilationError +
                 '}';
     }
 }

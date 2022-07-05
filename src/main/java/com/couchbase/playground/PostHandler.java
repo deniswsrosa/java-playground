@@ -1,41 +1,54 @@
-package example;
+package com.couchbase.playground;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import jdk.jshell.JShell;
 import jdk.jshell.Snippet;
 import jdk.jshell.SnippetEvent;
 import jdk.jshell.SourceCodeAnalysis;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 // Handler value: example.Handler
-public class Handler implements RequestHandler<String, CodeResult>{
+public class PostHandler implements RequestStreamHandler {
+  Gson gson = new GsonBuilder().setPrettyPrinting().create();
   @Override
-  public CodeResult handleRequest(String event, Context context) {
-    return runJavaCode(event);
+  public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
+    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+    JsonObject event = (JsonObject) JsonParser.parseReader(reader);
+
+    CBCredentials credentials = new Gson().fromJson(event.get("body").getAsString(), CBCredentials.class);
+    String key = event.getAsJsonObject("queryStringParameters").get("id").getAsString();
+    JsonObject response = runJavaCode(key, credentials);
+
+    OutputStreamWriter writer = new OutputStreamWriter(outputStream, "UTF-8");
+    writer.write(response.toString());
+    writer.close();
   }
 
-  public CodeResult runJavaCode(String code)  {
+  public JsonObject runJavaCode(String key, CBCredentials credentials)  {
+
+
+    String code = "System.out.printf(\""+key+"\");System.out.printf(\""+credentials.getConnectionString()+"\")";
+
 
     JShell jShell = JShell.create();
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/commons-collections4-4.2.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/jackson-databind-2.13.3.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/blockhound-1.0.6.RELEASE.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/reactive-streams-1.0.4.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/reactor-core-3.4.19.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/core-io-2.3.1.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/java-client-3.3.1.jar").getPath());
-    jShell.addToClasspath(Handler.class.getClassLoader().getResource("classpath/couchbase-transactions-1.2.4.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/commons-collections4-4.2.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/jackson-databind-2.13.3.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/blockhound-1.0.6.RELEASE.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/reactive-streams-1.0.4.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/reactor-core-3.4.19.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/core-io-2.3.1.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/java-client-3.3.1.jar").getPath());
+    jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/couchbase-transactions-1.2.4.jar").getPath());
 
     redirectOutput(jShell);
 
@@ -71,7 +84,7 @@ public class Handler implements RequestHandler<String, CodeResult>{
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(buffer);
         evt.get(0).exception().printStackTrace(ps);
-        codeResult.setExceptionStackTrace(buffer.toString());
+        codeResult.setException( buffer.toString());
         buffer.reset();
         codeResult.setSuccessful(false);
         break;
@@ -81,7 +94,7 @@ public class Handler implements RequestHandler<String, CodeResult>{
       if(evt.get(0).status() != Snippet.Status.VALID ) {
         List<String> errors = new ArrayList<>();
         jShell.diagnostics(evt.get(0).snippet()).forEach(x -> errors.add(x.getMessage(Locale.ENGLISH)));
-        codeResult.setCompilationErrors(errors);
+        codeResult.setCompilationError(errors.get(0));
         codeResult.setSuccessful(false);
         break;
       }
@@ -94,7 +107,11 @@ public class Handler implements RequestHandler<String, CodeResult>{
     //get the system.out.println output of the code
     codeResult.setOutput(flushOutput(jShell));
 
-    return codeResult;
+    JsonObject response = new JsonObject();
+    response.addProperty("statusCode", 200);
+    response.addProperty("body", new Gson().toJson(codeResult) );
+
+    return response;
   }
 
 

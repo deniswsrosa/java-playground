@@ -4,7 +4,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import jdk.jshell.JShell;
@@ -17,9 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-// Handler value: example.Handler
 public class PostHandler implements RequestStreamHandler {
-  Gson gson = new GsonBuilder().setPrettyPrinting().create();
   @Override
   public void handleRequest(InputStream inputStream, OutputStream outputStream, Context context) throws IOException {
     BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -36,9 +33,11 @@ public class PostHandler implements RequestStreamHandler {
 
   public JsonObject runJavaCode(String key, CBCredentials credentials)  {
 
-
-    String code = "System.out.printf(\""+key+"\");System.out.printf(\""+credentials.getConnectionString()+"\")";
-
+    String code = ExamplesStore.map.get(key).getFullCode();
+    code = code.replaceAll(ExamplesStore.CONNECTION_STRING, credentials.getConnectionString() == null ? "\"\"":credentials.getConnectionString())
+            .replaceAll(ExamplesStore.BUCKET, credentials.getBucketName() == null ? "\"\"":credentials.getBucketName())
+            .replaceAll(ExamplesStore.USERNAME, credentials.getUsername() == null ? "\"\"":credentials.getUsername())
+            .replaceAll(ExamplesStore.PASSWORD, credentials.getPassword() == null ? "\"\"":credentials.getPassword());
 
     JShell jShell = JShell.create();
     jShell.addToClasspath(PostHandler.class.getClassLoader().getResource("classpath/commons-collections4-4.2.jar").getPath());
